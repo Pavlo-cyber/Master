@@ -1,0 +1,45 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+        {
+            "label": "🔥 Flash (STlink) target...",
+            "type": "shell",
+            "command": "st-flash write ./builddir/meson-out/CustomRTOS.elf 0x08000000",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "always"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "🔥 Generate hex",
+            "type": "shell",
+            "command": "arm-none-eabi-objcopy -O ihex ./builddir/meson-out/CustomRTOS ./builddir/meson-out/CustomRTOS.hex",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "always"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "🔥 Generate elf",
+            "type": "shell",
+            "command": "arm-none-eabi-objcopy -I binary -O elf32-littlearm -B arm ./builddir/meson-out/CustomRTOS ./builddir/meson-out/CustomRTOS.elf",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "always"
+            },
+            "problemMatcher": []
+        }
+
+    ]
+}

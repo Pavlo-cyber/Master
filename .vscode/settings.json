@@ -1,0 +1,13 @@
+{
+    "files.associations": {
+        "stm32h7xx_ll_gpio.h": "c",
+        "stm32h7xx_ll_system.h": "c",
+        "stm32h7xx_ll_cortex.h": "c",
+        "mpa.h": "c",
+        "stdint.h": "c",
+        "rtos_config.h": "c",
+        "__node_handle": "c"
+    },
+    "C_Cpp.default.compileCommands": "builddir/compile_commands.json",
+    "cortex-debug.variableUseNaturalFormat": false
+}

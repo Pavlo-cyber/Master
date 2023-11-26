@@ -1,0 +1,42 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+    
+        {                                                                                           // for each target one configuration
+            "cwd": "${workspaceRoot}",
+            "executable": "./builddir/meson-out/CustomRTOS.elf",//"./builddir/meson-out/CustomRTOS.elf",             // link to AXF file
+            "name": "ST-Link debug",
+            "request": "launch",
+            "type": "cortex-debug",
+            "servertype": "openocd",
+            "runToMain": true,
+            "configFiles": ["./openocd.cfg"],                         // these cfg files are located in the hb_tools_portable under openocd
+            "svdFile": "${workspaceRoot}/STM32H743.svd",
+            "swoConfig":
+            {
+                "enabled": true,
+                "cpuFrequency": 64000000,
+                "swoFrequency": 300000,
+                "source": "probe",
+                "decoders":
+                [
+                    {
+                        "label": "ITM port 0 output",
+                        "type": "console",
+                        "port": 0,
+                        "showOnStartup": true,
+                        "encoding": "ascii"
+                    }
+                ]
+            },
+            "preLaunchCommands": [
+                "file ./builddir/meson-out/CustomRTOS.elf",     // link to HEX file
+                "load"
+            ],
+            "postRestartCommands": [
+                "break main",
+                "continue"
+            ]
+        }
+    ]
+}
