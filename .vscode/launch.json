@@ -4,7 +4,7 @@
     
         {                                                                                           // for each target one configuration
             "cwd": "${workspaceRoot}",
-            "executable": "./builddir/meson-out/CustomRTOS.elf",//"./builddir/meson-out/CustomRTOS.elf",             // link to AXF file
+            "executable": "./builddir/meson-out/ML_LD.elf",//"./builddir/meson-out/CustomRTOS.elf",             // link to AXF file
             "name": "ST-Link debug",
             "request": "launch",
             "type": "cortex-debug",
@@ -30,7 +30,7 @@
                 ]
             },
             "preLaunchCommands": [
-                "file ./builddir/meson-out/CustomRTOS.elf",     // link to HEX file
+                "file ./builddir/meson-out/ML_LD.elf",     // link to HEX file
                 "load"
             ],
             "postRestartCommands": [
