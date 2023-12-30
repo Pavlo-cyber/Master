@@ -23,7 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 /* USER CODE END Includes */
-
+extern PCD_HandleTypeDef hpcd_USB_OTG_FS;
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN TD */
 
@@ -174,17 +174,18 @@ void PendSV_Handler(void)
   /* USER CODE END PendSV_IRQn 1 */
 }
 
-    //If you use psp here than what will happend if another interrupt occured
-    //it will change stack pointer to msp but before it will push 8 register to psp
-    //after finishing it will pop it will try to pop it from psp of msp. When it will return it will try to use
-    //psp or switched to msp.
 
-    //All will be pushed/poped to msp 
-    //After interrupt still will be used psp.
+void OTG_FS_IRQHandler(void)
+{
+  /* USER CODE BEGIN OTG_FS_IRQn 0 */
 
-/**
-  * @brief This function handles System tick timer.
-  */
+  /* USER CODE END OTG_FS_IRQn 0 */
+  HAL_PCD_IRQHandler(&hpcd_USB_OTG_FS);
+  /* USER CODE BEGIN OTG_FS_IRQn 1 */
+
+  /* USER CODE END OTG_FS_IRQn 1 */
+}
+
 void SysTick_Handler(void)
 {
   /* USER CODE BEGIN SysTick_IRQn 0 */

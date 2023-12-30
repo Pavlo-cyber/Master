@@ -20,7 +20,14 @@ c_args = [
 ]
 
 # Target header include list
-target_include_dir = ['application/hardware/cmsis', 'application/hardware/hal', 'application/hardware/ll']
+target_include_dir = [
+    'application/hardware/cmsis', 
+    'application/hardware/hal', 
+    'application/hardware/ll',
+    'application/modules/USB_DEVICE/App',
+    'application/modules/USB_DEVICE/Target',
+    'application/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc',
+    'application/Middlewares/ST/STM32_USB_Device_Library/Core/Inc']
 # Basic source files from CMSIS, HAL, and LL libraries
 stm32h7_cmsis_source_files = ['']
 stm32h7_hal_source_files = [
@@ -43,6 +50,17 @@ stm32h7_ll_source_files = [
 stm32h7_extra_files = [
     'stm32h7xx_hal_msp.c',
     'stm32h7xx_it.c',
+]
+
+usb_device_source_file = [
+    'application/Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_core.c',
+    'application/Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ctlreq.c',
+    'application/Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ioreq.c',
+    'application/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.c',
+    'application/modules/USB_DEVICE/App/usbd_cdc_if.c',
+    'application/modules/USB_DEVICE/App/usb_device.c',
+    'application/modules/USB_DEVICE/App/usbd_desc.c',
+    'application/modules/USB_DEVICE/Target/usbd_conf.c',
 ]
 
 project_sources = []
@@ -77,6 +95,7 @@ project_sources += system_files
 project_sources += stm32h7_hal_source_files
 project_sources +=stm32h7_ll_source_files
 project_sources +=stm32h7_extra_files
+project_sources += usb_device_source_file
 
 # Module list and its boolean flags to include/exclude from build
 module_list = {

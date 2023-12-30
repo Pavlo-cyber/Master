@@ -6,8 +6,11 @@
         "mpa.h": "c",
         "stdint.h": "c",
         "rtos_config.h": "c",
-        "__node_handle": "c"
+        "__node_handle": "c",
+        "stm32h7xx_hal.h": "c",
+        "usbd_cdc_if.h": "c",
+        "usb_device.h": "c"
     },
-    "C_Cpp.default.compileCommands": "builddir/compile_commands.json",
+    "C_Cpp.default.compileCommands": "/Users/pavlogoncaruk/study/master/builddir/compile_commands.json",
     "cortex-debug.variableUseNaturalFormat": false
 }
