@@ -59,6 +59,10 @@ int main(void)
 
   (void)grnn_train("0:/Hardness.csv");
 
+  double array[] = {1, 0, 0, 91, 0, 9, 0, 0, 0,0, 0, 9, 1800, 0, 5.87,11.76};
+
+  grnn_test(array, sizeof(array)/sizeof(array[0]));
+
   // FRESULT res;
   // FATFS SDFatFs;  /* File system object for SD disk logical drive */
   // FIL MyFile;     /* File object */
@@ -141,7 +145,7 @@ static void MX_SDMMC1_SD_Init(void)
   hsd1.Init.ClockPowerSave = SDMMC_CLOCK_POWER_SAVE_DISABLE;
   hsd1.Init.BusWide = SDMMC_BUS_WIDE_4B;
   hsd1.Init.HardwareFlowControl = SDMMC_HARDWARE_FLOW_CONTROL_DISABLE;
-  hsd1.Init.ClockDiv = 5;
+  hsd1.Init.ClockDiv = 6;
   /* USER CODE BEGIN SDMMC1_Init 2 */
   /* USER CODE END SDMMC1_Init 2 */
 

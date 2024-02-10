@@ -201,7 +201,7 @@
 /  type of optical media. When FF_MAX_SS is larger than FF_MIN_SS, FatFs is configured
 /  for variable sector size mode and disk_ioctl() function needs to implement
 /  GET_SECTOR_SIZE command. */
-з
+
 
 #define FF_LBA64		0
 /* This option switches support for 64-bit LBA. (0:Disable or 1:Enable)

@@ -19,10 +19,11 @@ typedef enum
   GRNN_RESULT_MEMORY_ALLOCATION_ERROR = 4,
 } GRNN_result_enum_t;
 
+// function to initialize grnn module, initialize csv parser and save parametes
 void grnn_init(float sigma1, float sigma2);
 
 GRNN_result_enum_t grnn_train(char const* train_filename);
 
-void grnn_test(GRNN_test_type_enum_t test_type, double* test_vector, uint32_t test_vector_size);
+double grnn_test(double* test_vector, uint32_t test_vector_size);
 
 #endif

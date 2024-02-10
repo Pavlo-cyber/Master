@@ -1,25 +1,29 @@
 #include "grnn.h"
 
-#include "math.h"
-#include "stdint.h"
 #include "csv.h"
-#include "hma.h" 
-#include "string.h"
+#include "hma.h"
 #include "stm32h7xx_hal.h"
 
+#include <math.h>
+#include <stdint.h>
+#include <string.h>
+#include <stdbool.h>
+
 // Define constants
-#define MAX_ROWS 152
-#define MAX_COLS 20
+#define MAX_ROWS (152)
+#define MAX_COLS (20)
 
 #define FILE_BUFFER_SIZE (512 * 20)
+#define CONCATENATED_FILE_NAME_SIZE (50)
 
 // Structure to represent a data frame
 typedef struct {
-    double data[MAX_ROWS][MAX_COLS];
-    uint16_t rows;
-    uint16_t cols;
-} DataFrame; 
+    double data[MAX_ROWS][MAX_COLS];        //< data from dataset
+    bool is_header;                         //< flag to indicate if dataframe have header
 
+    uint16_t rows;                          //< row number, used to properly write data to structure on csv callbacks
+    uint16_t cols;                          //< col number, used to properly write data to structure on csv callbacks
+} DataFrame; 
 
 typedef struct
 {
@@ -28,28 +32,35 @@ typedef struct
 
   struct csv_parser parser;
   DataFrame train_dataframe;
-  uint16_t dataframe_col_number;
-  uint16_t dataframe_row_number;
+
+  uint16_t dataframe_col_number;              //< number of cols in train_dataframe structure
+  uint16_t dataframe_row_number;              //< number of rows in train dataframe strcture
 
   double y_train[MAX_ROWS];
   double y_train_predicted[MAX_ROWS];
+
+  char x_augmented_filename[CONCATENATED_FILE_NAME_SIZE];
+  char y_augmented_filename[CONCATENATED_FILE_NAME_SIZE];
 
   float sigma1;
   float sigma2;
 } GRNN_t;
 
-GRNN_t GRNN = {0};
+static GRNN_t GRNN = {0};
 
 void grnn_init(float sigma1, float sigma2)
 {
   csv_init(&GRNN.parser, 0);
 
-  //use custom heap allocation function
+  // use custom heap allocation function
   GRNN.parser.free_func = vPortFree;
   GRNN.parser.realloc_func = pvPortRealloc;
 
   GRNN.sigma1 = sigma1;
   GRNN.sigma2 = sigma2;
+
+  // curently used dataset with header 
+  GRNN.train_dataframe.is_header = true;
 }
 
 float root_mean_squared_error(float *y_true, float *y_pred, int size) 
@@ -75,6 +86,7 @@ float mean_absolute_percentage_error(float *y_true, float *y_pred, int size) {
 static void csv_field_callback (void *s, size_t i, void *user_data) 
 {
   char* temp_string = pvPortMalloc(i + 1);
+  
   if(temp_string == NULL)
   {
     assert_param();
@@ -82,7 +94,7 @@ static void csv_field_callback (void *s, size_t i, void *user_data)
   else
   {
     //skip first row(first row contain lables)
-    if(GRNN.train_dataframe.rows != 0)
+    if(GRNN.train_dataframe.is_header == false)
     {
       memcpy(temp_string, s, i);
       temp_string[i] = '\0';
@@ -98,12 +110,19 @@ static void csv_field_callback (void *s, size_t i, void *user_data)
 // callback called on each csv row
 static void csv_row_callback (int c, void *user_data) {
   // variable to memorize finale dataframe size
-  GRNN.dataframe_col_number = GRNN.train_dataframe.cols;
-  GRNN.dataframe_row_number += 1;
+  if(GRNN.train_dataframe.is_header == true)
+  {
+    GRNN.train_dataframe.is_header = false;
+  }
+  else
+  {
+    GRNN.dataframe_col_number = GRNN.train_dataframe.cols;
+    GRNN.dataframe_row_number += 1;
 
-  // varable to read
-  GRNN.train_dataframe.rows += 1;
-  GRNN.train_dataframe.cols = 0;
+    // varable to read
+    GRNN.train_dataframe.rows += 1;
+    GRNN.train_dataframe.cols = 0;
+  }
 }
 
 static GRNN_result_enum_t grnn_load_data(const char* train_filename)
@@ -133,6 +152,9 @@ static GRNN_result_enum_t grnn_load_data(const char* train_filename)
       break;
     }
   }
+
+  csv_fini(&GRNN.parser, csv_field_callback, csv_row_callback, NULL);
+  csv_free(&GRNN.parser);
 
  if(fresult ==  FR_OK)
  {
@@ -175,6 +197,13 @@ static double grnn_predict(double *instance_X, DataFrame* train_X, uint32_t row,
   return result;
 }
 
+static double calculate_distance(double *instance_X, double *train_X, int col, float sigma) {
+    double distance = 0.0;
+    for (int k = 0; k < col; k++) {
+        distance += pow(instance_X[k] - train_X[k], 2);
+    }
+    return exp(-distance / (2 * pow(sigma, 2)));
+}
 
 static double grnn_predict_concatenated(double *instance_X, char* train_x_filename, char* train_y_filename, uint32_t row, uint32_t col, float sigma)
 {
@@ -183,16 +212,17 @@ static double grnn_predict_concatenated(double *instance_X, char* train_x_filena
 
   FIL fp1;
   FIL fp2;
-  FIL fp3;
 
   if(f_open(&fp1, train_x_filename, FA_READ) != FR_OK)
   {
-    return;
+    // handelr error
+    assert_param(true);
   }
 
-  if(f_open(&fp1, train_y_filename, FA_READ) != FR_OK)
+  if(f_open(&fp2, train_y_filename, FA_READ) != FR_OK)
   {
-    return;
+    // handle error
+    assert_param(true);
   }
 
   double train_X_row[col];
@@ -203,17 +233,17 @@ static double grnn_predict_concatenated(double *instance_X, char* train_x_filena
     // Read a row of train_X from file
     uint32_t bytes_readed = 0;
 
-    if (f_read(&fp1, (void*)train_X_row, sizeof(double) * col, &bytes_readed) != FR_OK) 
+    if (f_read(&fp1, (void*)train_X_row, sizeof(double) * col, (void*)&bytes_readed) != FR_OK) 
     {
         printf("Error reading train_X from file.\n");
-        return; // Error indicator
+        // Error indicator
     }
 
     // Read the corresponding train_y value
-    if (fread(&fp2, &train_y, sizeof(double), bytes_readed) != FR_OK) 
+    if (f_read(&fp2, (void*)&train_y, sizeof(double), (void*)&bytes_readed) != FR_OK) 
     {
       printf("Error reading train_y from file.\n");
-      return; // Error indicator
+      // Error indicator
     }
 
     // Calculate Gaussian distance
@@ -230,37 +260,49 @@ static double grnn_predict_concatenated(double *instance_X, char* train_x_filena
   return result_sum / gaussian_distances_sum;
 }
 
-double grnn_test(GRNN_test_type_enum_t test_type, double* test_vector, uint32_t test_vector_size)
+double grnn_test(double* test_vector, uint32_t test_vector_size)
 {
   //predict value for test_vector, use predict function
-  double y_pred = grnn_predict(test_vector, test_vector, 1, test_vector_size - 1, &test_vector[test_vector_size - 1], GRNN.sigma2);
 
+  static DataFrame df;
+  // if(df == NULL)
+  // {
+  //   // handler error
+  // }
+
+  memcpy(df.data[0], test_vector, test_vector_size);
+
+  double y_pred = grnn_predict(test_vector, &df, 1, test_vector_size - 1, &test_vector[test_vector_size - 1], GRNN.sigma2);
+
+  // vPortFree(df);
+
+  // currently used only one test vector
   double z_augmented[1][MAX_ROWS];
 
-  double instance_x[GRNN.col * 2 + 2];
+  double instance_x[GRNN.dataframe_col_number * 2 + 2];
 
   double z_aumented_sum = 0;
 
   for(int i = 0; i < 1; i++)
   {
-    for(int j = 0; j < GRNN.dataframe_row_number; i++)
+    for(int j = 0; j < GRNN.dataframe_row_number; j++)
     {
       // create instance x concatenating test vector, train vecotr and they prediction value
-      memcpy(instance_x, test_vector, test_vector_size);
-      memcpy(instance_x + test_vector_size * sizeof(double), GRNN.train_dataframe.data[j], test_vector_size);
-      memcpy(instance_x + (test_vector_size) * 2 * sizeof(double), &y_pred, sizeof(double));
-      memcpy(instance_x + ((test_vector_size) * 2 + 1) * sizeof(double),  &GRNN.y_train_predicted[j], sizeof(double));
+      memcpy(instance_x, test_vector, test_vector_size * sizeof(double));
+      memcpy(instance_x + test_vector_size, GRNN.train_dataframe.data[j], test_vector_size * sizeof(double));
+      memcpy(instance_x + (test_vector_size) * 2, &y_pred, sizeof(double));
+      memcpy(instance_x + ((test_vector_size) * 2 + 1),  &GRNN.y_train_predicted[j], sizeof(double));
 
-      z_augmented[i][j] = grnn_predict_concatenated(instance_x "dummy_file_1", "dummy_file2", GRNN.col * 2, pow(GRNN.row), GRNN.sigma2);
+      z_augmented[i][j] = grnn_predict_concatenated(instance_x, GRNN.x_augmented_filename, GRNN.y_augmented_filename, pow(GRNN.dataframe_row_number, 2), GRNN.dataframe_col_number * 2, GRNN.sigma2);
       
-      z_aumented_sum += z_aumented[i][j];
+      z_aumented_sum += z_augmented[i][j];
     }
   }
 
   double y_prediction_sum = 0;
-  for(int i = 0; i < GRNN.rows; i++)
+  for(int i = 0; i < GRNN.dataframe_row_number; i++)
   {
-    y_prediction_sum += GRNN.y_predction[i];
+    y_prediction_sum += GRNN.y_train_predicted[i];
   }
 
   double final_y_predction = z_aumented_sum + y_prediction_sum;
@@ -268,16 +310,19 @@ double grnn_test(GRNN_test_type_enum_t test_type, double* test_vector, uint32_t 
   return final_y_predction;
 }
 
-static void grnn_concatenate_data(char* train_x_filename,char* train_z_filename, DataFrame* train_dataframe, uint32_t col, uint32_t row, double* y_predict)
+static GRNN_result_enum_t grnn_concatenate_data(char* train_x_filename,char* train_z_filename, DataFrame* train_dataframe, uint32_t col, uint32_t row, double* y_predict)
 {
   GRNN_result_enum_t result_enum = GRNN_RESULT_ENUM_OK;
+  FRESULT fresult = FR_OK;
   FIL fp1, fp2;
+
+  uint32_t byte_written = 0;
 
   if((f_open(&fp1, train_x_filename,  FA_READ | FA_WRITE) == FR_OK) && (f_open(&fp2, train_z_filename,  FA_READ | FA_WRITE) == FR_OK))
   {
     // files already exist
   }
-  else if((f_open(&fp1, "concatenated_file",  FA_READ | FA_WRITE | FA_OPEN_ALWAYS) == FR_OK) && (f_open(&fp2, train_z_filename,  FA_READ | FA_WRITE | FA_OPEN_ALWAYS) == FR_OK))
+  else if((f_open(&fp1, train_x_filename,  FA_READ | FA_WRITE | FA_OPEN_ALWAYS) == FR_OK) && (f_open(&fp2, train_z_filename,  FA_READ | FA_WRITE | FA_OPEN_ALWAYS) == FR_OK))
   {
     //file create succesfully
     for (int i = 0; i < row; i++) 
@@ -293,15 +338,24 @@ static void grnn_concatenate_data(char* train_x_filename,char* train_z_filename,
       memcpy(concatenated_data + col, train_dataframe->data[j], col * sizeof(double));
 
       // Write concatenated data to the file
-      f_write(&fp1, concatenated_data, col * 2 * sizeof(double), NULL);
+      if(f_write(&fp1, concatenated_data, col * 2 * sizeof(double), (void*)&byte_written) != FR_OK)
+      {
+        return GRNN_RESULT_ENUM_NOK;
+      }
 
       // Write corresponding y and y_predict values
       prediction[0] = y_predict[i];
       prediction[1] = y_predict[j];
-      f_write(&fp1, prediction, 2 * sizeof(double), NULL);
+      if(f_write(&fp1, prediction, 2 * sizeof(double), (void*)&byte_written) != FR_OK)
+      {
+        return GRNN_RESULT_ENUM_NOK;
+      }
 
       double z = prediction[0] - prediction[1];
-      f_write(&fp2, (void*)&z, sizeof(double), NULL);
+      if((fresult = f_write(&fp2, (void*)&z, sizeof(double), (void*)&byte_written)) != FR_OK)
+      {
+        return GRNN_RESULT_ENUM_NOK;
+      }
     }
   }
   }
@@ -316,6 +370,17 @@ static void grnn_concatenate_data(char* train_x_filename,char* train_z_filename,
   return result_enum;
 }
 
+static void removeExtension(char* filename) {
+    // Find the position of the last occurrence of '.'
+    char *dot = strrchr(filename, '.');
+    
+    // If '.' found, truncate the string at that position
+    if (dot != NULL) 
+    {
+        *dot = '\0';
+    }
+  printf("%s", filename);
+}
 
 
 GRNN_result_enum_t grnn_train(const char* train_filename)
@@ -348,13 +413,21 @@ GRNN_result_enum_t grnn_train(const char* train_filename)
   // i.e if for each concatenated vector before dataframe[i] and dataframe[j] there should be value predicted_y dataframe[i] - predicted_y dataframe[j]
   // store in file train_filename_y.bin
   
-  char concatenated_x_file[30];
-  sprintf(concatenated_x_file, "%s%s", train_filename, "_concatenated_x.bin");
+  // remove csv extension from file
 
-  char concatenated_y_file[30];
-  sprintf(concatenated_y_file, "%s%s", train_filename, "_concatenated_y.bin");
+  char filename_temp[30];
+  strcpy(filename_temp, train_filename);
 
-  grnn_concatenate_data(concatenated_x_file, concatenated_y_file,  &GRNN.train_dataframe, GRNN.dataframe_col_number, GRNN.dataframe_row_number, GRNN.y_train_predicted);
+  removeExtension((char*)filename_temp);
+
+  sprintf(GRNN.x_augmented_filename, "%s%s", train_filename, "_concatenated_x.bin");
+
+  sprintf(GRNN.y_augmented_filename, "%s%s", train_filename, "_concatenated_y.bin");
+
+  if(grnn_concatenate_data(GRNN.x_augmented_filename, GRNN.y_augmented_filename,  &GRNN.train_dataframe, GRNN.dataframe_col_number, GRNN.dataframe_row_number, GRNN.y_train_predicted) != GRNN_RESULT_ENUM_OK)
+  {
+    result_enum = GRNN_RESULT_ENUM_NOK;
+  }
 
   return result_enum;
 }
