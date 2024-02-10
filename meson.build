@@ -5,20 +5,6 @@ project(
     default_options : ['b_colorout=always'], 
     )
 
-#Set compiler parameters  
-c_args = [
-    '-mcpu=cortex-m7',
-    '-g',
-    '-mthumb',
-    '-Wall',
-    '-Werror',
-    '-O2',
-    '-DDEBUG',
-    '-DUSE_HAL_DRIVER',
-    '-DUSE_FULL_LL_DRIVER',
-    '-DSTM32H743xx',
-]
-
 # Target header include list
 target_include_dir = [
     'application/hardware/cmsis', 
@@ -27,7 +13,13 @@ target_include_dir = [
     'application/modules/USB_DEVICE/App',
     'application/modules/USB_DEVICE/Target',
     'application/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc',
-    'application/Middlewares/ST/STM32_USB_Device_Library/Core/Inc']
+    'application/Middlewares/ST/STM32_USB_Device_Library/Core/Inc',
+    'application/Middlewares/Third_Party/FatFs/src',
+    'application/modules/FATFS/App',
+    'application/modules/FATFS/Target',
+    'application/Middlewares/Third_Party/libcsv',
+    ]
+
 # Basic source files from CMSIS, HAL, and LL libraries
 stm32h7_cmsis_source_files = ['']
 stm32h7_hal_source_files = [
@@ -39,12 +31,15 @@ stm32h7_hal_source_files = [
     'application/hardware/hal/stm32h7xx_hal_pcd.c',
     'application/hardware/hal/stm32h7xx_hal_pcd_ex.c',
     'application/hardware/hal/stm32h7xx_hal_pwr_ex.c',
-     'application/hardware/hal/stm32h7xx_hal_pwr.c',
+    'application/hardware/hal/stm32h7xx_hal_pwr.c',
+    'application/hardware/hal/stm32h7xx_hal_sd.c',
     ]
+
 stm32h7_ll_source_files = [
     'application/hardware/ll/stm32h7xx_ll_utils.c',
     'application/hardware/ll/stm32h7xx_ll_rcc.c',
-    'application/hardware/hal/stm32h7xx_ll_usb.c',
+    'application/hardware/ll/stm32h7xx_ll_usb.c',
+    'application/hardware/ll/stm32h7xx_ll_sdmmc.c',
     ]
 
 stm32h7_extra_files = [
@@ -63,6 +58,22 @@ usb_device_source_file = [
     'application/modules/USB_DEVICE/Target/usbd_conf.c',
 ]
 
+fatfs_source_files = [
+    'application/Middlewares/Third_Party/FatFs/src/diskio.c',
+    'application/Middlewares/Third_Party/FatFs/src/ff_gen_drv.c',
+    'application/Middlewares/Third_Party/FatFs/src/ff.c',
+    'application/Middlewares/Third_Party/FatFs/src/ffsystem.c',
+    'application/Middlewares/Third_Party/FatFs/src/ffunicode.c',
+    'application/modules/FATFS/App/fatfs.c',
+    'application/modules/FATFS/Target/bsp_driver_sd.c',
+    'application/modules/FATFS/Target/fatfs_platform.c',
+    'application/modules/FATFS/Target/sd_diskio.c',
+]
+
+libcsv_source_files = [
+    'application/Middlewares/Third_Party/libcsv/libcsv.c',
+]
+
 project_sources = []
 
 ldscript = join_paths(meson.source_root(), 'STM32H743ZITX_FLASH.ld')
@@ -71,6 +82,22 @@ startup_file = files('application/Startup/startup_stm32h743zitx.s')
 
 system_files = files('application/hardware/cmsis/syscalls.c', 'application/hardware/cmsis/sysmem.c', 'application/hardware/cmsis/system_stm32h7xx.c')
 
+#Set compiler parameters  
+c_args = [
+    '-mcpu=cortex-m7',
+    '-g',
+    '-mthumb',
+    '-Wall',
+    '-Werror',
+    '-O0',
+    '-DDEBUG',
+    '-DUSE_HAL_DRIVER',
+    '-DUSE_FULL_LL_DRIVER',
+    '-DSTM32H743xx',
+    '-mfloat-abi=hard',
+    '-mfpu=fpv4-sp-d16'
+]
+
 link_args = [
     '-T' + ldscript,
     '-mcpu=cortex-m7',
@@ -78,13 +105,15 @@ link_args = [
     '-mthumb',
     '-Wall',
     '-Werror',
-    '-O2',
+    '-O0',
     '-DDEBUG',
     '-DUSE_HAL_DRIVER',
     '-DUSE_FULL_LL_DRIVER',
     '-DSTM32H743xx',
     '-Wl,-Map=test.map', 
     '-Wl,--gc-sections', 
+    '-mfloat-abi=hard',
+    '-mfpu=fpv4-sp-d16'
     ]
 
 add_project_arguments(c_args, language : 'c')
@@ -96,10 +125,14 @@ project_sources += stm32h7_hal_source_files
 project_sources +=stm32h7_ll_source_files
 project_sources +=stm32h7_extra_files
 project_sources += usb_device_source_file
+project_sources += fatfs_source_files
+project_sources += libcsv_source_files
 
 # Module list and its boolean flags to include/exclude from build
 module_list = {
     'main_module'   : true,
+    'hma'           : true,
+    'grnn'          : true,
 }
 
 path_to_modules = 'application/modules/'
@@ -119,6 +152,5 @@ executable(
     link_depends : startup_file,
     include_directories: target_include_dir,
     c_args: c_args,
-
     link_args: link_args,
 )

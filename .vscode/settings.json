@@ -9,8 +9,14 @@
         "__node_handle": "c",
         "stm32h7xx_hal.h": "c",
         "usbd_cdc_if.h": "c",
-        "usb_device.h": "c"
+        "usb_device.h": "c",
+        "stm32h7xx_it.h": "c",
+        "csv.h": "c",
+        "cstring": "c",
+        "__string": "c",
+        "memory": "c",
+        "utility": "c"
     },
     "C_Cpp.default.compileCommands": "/Users/pavlogoncaruk/study/master/builddir/compile_commands.json",
-    "cortex-debug.variableUseNaturalFormat": false
+    "cortex-debug.variableUseNaturalFormat": true
 }

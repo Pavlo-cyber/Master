@@ -58,6 +58,8 @@ extern "C" {
 #define CSV_COMMA  0x2c
 #define CSV_QUOTE  0x22
 
+#define CSV_SEMICOLON 0x3c
+
 struct csv_parser {
   int pstate;         /* Parser state */
   int quoted;         /* Is the current field a quoted field? */

@@ -1,16 +1,19 @@
 #include "stdio.h"
+#include "main.h"
 
-#include "stm32h7xx_hal.h"
-#include "stm32h7xx_ll_rcc.h"
-#include "stm32h7xx_ll_pwr.h"
-#include "stm32h7xx_ll_utils.h"
 #include "usb_device.h"
 #include "usbd_cdc_if.h"
 #include "stdlib.h"
 #include "string.h"
+#include "ff.h"
+#include "fatfs.h"
+#include "grnn.h"
 
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_SDMMC1_SD_Init(void);
+
+SD_HandleTypeDef hsd1;
 
 int _write(int file, char *ptr, int len)
 {
@@ -21,14 +24,6 @@ int _write(int file, char *ptr, int len)
     ITM_SendChar(*ptr++);
   }
   return len;
-}
-
-void Error_Handler(void)
-{
-  __disable_irq();
-  while (1)
-  {
-  }
 }
 
 
@@ -57,10 +52,55 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USB_DEVICE_Init();
+  MX_SDMMC1_SD_Init();
+  MX_FATFS_Init();
+
+  grnn_init(0.1, 0.2);
+
+  (void)grnn_train("0:/Hardness.csv");
+
+  // FRESULT res;
+  // FATFS SDFatFs;  /* File system object for SD disk logical drive */
+  // FIL MyFile;     /* File object */
+  // res =  f_mount(&SDFatFs, "", 1);
+  // if (res == FR_OK)
+  // {
+  //   res = f_open(&MyFile, "monitor.txt", FA_READ | FA_WRITE);
+  // }
+
+  // uint32_t readed = 0;
+  // char buff[512];
+  // if(res == FR_OK)
+  // {
+	//   res = f_read(&MyFile, buff, 512, (void*)&readed);
+  // }
+  // if(res == FR_OK)
+  // {
+	//   res = f_close(&MyFile);
+  // }
+
+  // if (res == FR_OK)
+  // {
+  //   res = f_open(&MyFile, "create.txt", FA_CREATE_ALWAYS| FA_READ | FA_WRITE);
+  // }
+
+  // static char wbuff[] = "Hello world";
+  // uint32_t written;
+
+  // if(res == FR_OK)
+  // {
+	//   res = f_write(&MyFile, wbuff, strlen(wbuff), (void*)&written);
+  // }
+
+  // if(res == FR_OK)
+  // {
+	//   res = f_close(&MyFile);
+  // }
+
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
-  static char buff[] = "Hello world\n";
+  // static char buff[] = "Hello world\n";
   // static uint8_t receiv[14];
   // uint32_t len = 0;
   /* Infinite loop */
@@ -68,7 +108,7 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-	  CDC_Transmit_FS((uint8_t*)buff, strlen(buff));
+	  //CDC_Transmit_FS((uint8_t*)buff, strlen(buff));
     // CDC_Receive_FS(receiv, &len);
     // receiv[13] = '\0';
     // printf("packet: %s len %ld", receiv, len);
@@ -76,6 +116,37 @@ int main(void)
   }
   /* USER CODE END 3 */
 }
+
+void Error_Handler(void)
+{
+  __disable_irq();
+  while (1)
+  {
+  }
+}
+
+
+static void MX_SDMMC1_SD_Init(void)
+{
+
+  /* USER CODE BEGIN SDMMC1_Init 0 */
+
+  /* USER CODE END SDMMC1_Init 0 */
+
+  /* USER CODE BEGIN SDMMC1_Init 1 */
+
+  /* USER CODE END SDMMC1_Init 1 */
+  hsd1.Instance = SDMMC1;
+  hsd1.Init.ClockEdge = SDMMC_CLOCK_EDGE_RISING;
+  hsd1.Init.ClockPowerSave = SDMMC_CLOCK_POWER_SAVE_DISABLE;
+  hsd1.Init.BusWide = SDMMC_BUS_WIDE_4B;
+  hsd1.Init.HardwareFlowControl = SDMMC_HARDWARE_FLOW_CONTROL_DISABLE;
+  hsd1.Init.ClockDiv = 5;
+  /* USER CODE BEGIN SDMMC1_Init 2 */
+  /* USER CODE END SDMMC1_Init 2 */
+
+}
+
 
 /**
   * @brief System Clock Configuration
@@ -113,8 +184,8 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLM = 4;
   RCC_OscInitStruct.PLL.PLLN = 60;
   RCC_OscInitStruct.PLL.PLLP = 2;
-  RCC_OscInitStruct.PLL.PLLQ = 2;
-  RCC_OscInitStruct.PLL.PLLR = 2;
+  RCC_OscInitStruct.PLL.PLLQ = 20;
+  RCC_OscInitStruct.PLL.PLLR = 4;
   RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_3;
   RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1VCOWIDE;
   RCC_OscInitStruct.PLL.PLLFRACN = 0;

@@ -481,36 +481,36 @@ csv_fwrite (FIL *fp, const void *src, size_t src_size)
 size_t
 csv_write2 (void *dest, size_t dest_size, const void *src, size_t src_size, unsigned char quote)
 {
-  unsigned char *cdest = dest;
-  const unsigned char *csrc = src;
+  // unsigned char *cdest = dest;
+  // const unsigned char *csrc = src;
   size_t chars = 0;
 
-  if (src == NULL)
-    return 0;
+  // if (src == NULL)
+  //   return 0;
 
-  if (dest == NULL)
-    dest_size = 0;
+  // if (dest == NULL)
+  //   dest_size = 0;
 
-  if (dest_size > 0)
-    *cdest++ = quote;
-  chars++;
+  // if (dest_size > 0)
+  //   *cdest++ = quote;
+  // chars++;
 
-  while (src_size) {
-    if (*csrc == quote) {
-      if (dest_size > chars)
-        *cdest++ = quote;
-      if (chars < SIZE_MAX) chars++;
-    }
-    if (dest_size > chars)
-      *cdest++ = *csrc;
-    if (chars < SIZE_MAX) chars++;
-    src_size--;
-    csrc++;
-  }
+  // while (src_size) {
+  //   if (*csrc == quote) {
+  //     if (dest_size > chars)
+  //       *cdest++ = quote;
+  //     if (chars < SIZE_MAX) chars++;
+  //   }
+  //   if (dest_size > chars)
+  //     *cdest++ = *csrc;
+  //   if (chars < SIZE_MAX) chars++;
+  //   src_size--;
+  //   csrc++;
+  // }
 
-  if (dest_size > chars)
-    *cdest = quote;
-  if (chars < SIZE_MAX) chars++;
+  // if (dest_size > chars)
+  //   *cdest = quote;
+  // if (chars < SIZE_MAX) chars++;
 
   return chars;
 }
@@ -518,33 +518,33 @@ csv_write2 (void *dest, size_t dest_size, const void *src, size_t src_size, unsi
 int
 csv_fwrite2 (FIL *fp, const void *src, size_t src_size, unsigned char quote)
 {
-  const unsigned char *csrc = src;
+  // const unsigned char *csrc = src;
 
-  if (fp == NULL || src == NULL)
-    return 0;
+  // if (fp == NULL || src == NULL)
+  //   return 0;
 
-  f_putc(quote, fp);
-  if (f_eof(fp))
-    return EOF;
+  // f_putc(quote, fp);
+  // if (f_eof(fp))
+  //   return EOF;
 
-  while (src_size) {
-    if (*csrc == quote) 
-    {
-      f_putc(quote, fp);
-      if (f_eof(fp))
-        return EOF;
-    }
-    f_putc(*csrc, fp);
-    if (f_eof(fp))
-      return EOF;
-    src_size--;
-    csrc++;
-  }
+  // while (src_size) {
+  //   if (*csrc == quote) 
+  //   {
+  //     f_putc(quote, fp);
+  //     if (f_eof(fp))
+  //       return EOF;
+  //   }
+  //   f_putc(*csrc, fp);
+  //   if (f_eof(fp))
+  //     return EOF;
+  //   src_size--;
+  //   csrc++;
+  // }
 
-  f_putc(quote, fp);
-  if (f_eof(fp)) {
-    return EOF;
-  }
+  // f_putc(quote, fp);
+  // if (f_eof(fp)) {
+  //   return EOF;
+  // }
 
   return 0;
 }
