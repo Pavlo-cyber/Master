@@ -20,10 +20,10 @@ typedef enum
 } GRNN_result_enum_t;
 
 // function to initialize grnn module, initialize csv parser and save parametes
-void grnn_init(float sigma1, float sigma2);
+void grnn_init(double sigma1, double sigma2);
 
 GRNN_result_enum_t grnn_train(char const* train_filename);
 
-double grnn_test(double* test_vector, uint32_t test_vector_size);
+double grnn_test(double test_vector[], uint32_t test_vector_size);
 
 #endif

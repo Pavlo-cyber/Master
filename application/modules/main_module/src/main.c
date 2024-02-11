@@ -55,11 +55,11 @@ int main(void)
   MX_SDMMC1_SD_Init();
   MX_FATFS_Init();
 
-  grnn_init(0.1, 0.2);
+  grnn_init(0.06128145862067626, 3.908926329639479);
 
   (void)grnn_train("0:/Hardness.csv");
 
-  double array[] = {1, 0, 0, 91, 0, 9, 0, 0, 0,0, 0, 9, 1800, 0, 5.87,11.76};
+  double array[] = {0,1,0,97,3,0,0,0,0,0,0,0,1650,1.8,6};
 
   grnn_test(array, sizeof(array)/sizeof(array[0]));
 

@@ -16,6 +16,10 @@
 #define FILE_BUFFER_SIZE (512 * 20)
 #define CONCATENATED_FILE_NAME_SIZE (50)
 
+typedef struct
+{
+  double maxAbs[MAX_COLS];
+} Scaler;
 // Structure to represent a data frame
 typedef struct {
     double data[MAX_ROWS][MAX_COLS];        //< data from dataset
@@ -42,13 +46,15 @@ typedef struct
   char x_augmented_filename[CONCATENATED_FILE_NAME_SIZE];
   char y_augmented_filename[CONCATENATED_FILE_NAME_SIZE];
 
-  float sigma1;
-  float sigma2;
+  Scaler scaler;
+
+  double sigma1;
+  double sigma2;
 } GRNN_t;
 
 static GRNN_t GRNN = {0};
 
-void grnn_init(float sigma1, float sigma2)
+void grnn_init(double sigma1, double sigma2)
 {
   csv_init(&GRNN.parser, 0);
 
@@ -169,7 +175,7 @@ static GRNN_result_enum_t grnn_load_data(const char* train_filename)
  return result_enum;
 }
 
-static double grnn_predict(double *instance_X, DataFrame* train_X, uint32_t row, uint32_t col, double *train_y, float sigma) 
+static double grnn_predict(double *instance_X, DataFrame* train_X, uint32_t row, uint32_t col, double *train_y, double sigma) 
 {
   double result_sum = 0.0;
   double gausian_distances_sum = 0.0;
@@ -179,11 +185,12 @@ static double grnn_predict(double *instance_X, DataFrame* train_X, uint32_t row,
     double distance = 0.0;
 
     for (int k = 0; k < col; k++) 
-    {
+    { 
+      // calculate euclidean distance
       distance += pow(instance_X[k] - train_X->data[i][k], 2);
     }
 
-    double gausian_distance = exp(-distance / (2 * pow(sigma, 2)));
+    double gausian_distance = exp( -distance / (2 * pow(sigma, 2)));
     gausian_distances_sum += gausian_distance;
     result_sum += gausian_distance * train_y[i];
   }
@@ -197,15 +204,15 @@ static double grnn_predict(double *instance_X, DataFrame* train_X, uint32_t row,
   return result;
 }
 
-static double calculate_distance(double *instance_X, double *train_X, int col, float sigma) {
+static double calculate_distance(double *instance_X, double *train_X, int col, double sigma) {
     double distance = 0.0;
     for (int k = 0; k < col; k++) {
         distance += pow(instance_X[k] - train_X[k], 2);
     }
-    return exp(-distance / (2 * pow(sigma, 2)));
+    return exp(- fabs(distance) / (2 * pow(sigma, 2)));
 }
 
-static double grnn_predict_concatenated(double *instance_X, char* train_x_filename, char* train_y_filename, uint32_t row, uint32_t col, float sigma)
+static double grnn_predict_concatenated(double *instance_X, char* train_x_filename, char* train_y_filename, uint32_t row, uint32_t col, double sigma)
 {
   double result_sum = 0.0;
   double gaussian_distances_sum = 0.0;
@@ -260,26 +267,100 @@ static double grnn_predict_concatenated(double *instance_X, char* train_x_filena
   return result_sum / gaussian_distances_sum;
 }
 
-double grnn_test(double* test_vector, uint32_t test_vector_size)
+
+void Scaler_fit(Scaler* scaler, double dataframe[MAX_ROWS][MAX_COLS], int rows, int cols) {
+    // Initialize maxAbs values to zero
+    for (int i = 0; i < cols; i++) {
+      scaler->maxAbs[i] = 0;
+    }
+    
+    // Calculate maxAbs values for each column
+    for (int col = 0; col < cols; col++) {
+        for (int row = 0; row < rows; row++) {
+            double absVal = fabs(dataframe[row][col]);
+            if (absVal > scaler->maxAbs[col]) {
+                scaler->maxAbs[col] = absVal;
+            }
+        }
+    }
+}
+
+void Scaler_transform(Scaler* scaler, double dataframe[MAX_COLS], int cols) {
+    // Scale each element in the dataframe
+    for (int col = 0; col < cols; col++) {
+        if (scaler->maxAbs[col] != 0) {
+            dataframe[col] /= scaler->maxAbs[col];
+        } else {
+            dataframe[col] = 0;
+        }
+    }
+}
+
+
+// double findMaxAbs(double arr[], int n) {
+//     double maxAbs = 0;
+//     for (int i = 0; i < n; i++) {
+//         double absVal = arr[i] > 0 ? arr[i] : -arr[i];
+//         if (absVal > maxAbs)
+//             maxAbs = absVal;
+//     }
+//     return maxAbs;
+// }
+
+// void maxAbsScaler(double arr[], int n) {
+//     double maxAbs = findMaxAbs(arr, n);
+//     for (int i = 0; i < n; i++) 
+//     {
+//       if(maxAbs != 0)
+//       {
+//         arr[i] /= maxAbs;
+//       }
+//       else
+//       {
+//         arr[i] = 0;
+//       }
+//     }
+
+// }
+
+// // Function to scale each column of a 2D array using max absolute scaling
+// void scaleColumns(double data[MAX_ROWS][MAX_COLS], int rows, int cols) {
+//     for (int col = 0; col < cols; col++) {
+//         double column[MAX_ROWS];
+//         // Extract the column
+//         for (int row = 0; row < rows; row++) {
+//             column[row] = data[row][col];
+//         }
+//         // Scale the column
+//         maxAbsScaler(column, rows);
+//         // Update the original data with scaled column
+//         for (int row = 0; row < rows; row++) {
+//             data[row][col] = column[row];
+//         }
+//     }
+// }
+
+double grnn_test(double test_vector[], uint32_t test_vector_size)
 {
   //predict value for test_vector, use predict function
+  // col number -1 because col number include 1 colum
+  if(test_vector_size != GRNN.dataframe_col_number - 1)
+  {
+    assert_param();
+    while(1)
+    {
 
-  static DataFrame df;
-  // if(df == NULL)
-  // {
-  //   // handler error
-  // }
+    }
+  }
 
-  memcpy(df.data[0], test_vector, test_vector_size);
+  Scaler_transform(&GRNN.scaler, test_vector, GRNN.dataframe_col_number - 1);
 
-  double y_pred = grnn_predict(test_vector, &df, 1, test_vector_size - 1, &test_vector[test_vector_size - 1], GRNN.sigma2);
-
-  // vPortFree(df);
+  double y_pred = grnn_predict(test_vector, &GRNN.train_dataframe, GRNN.dataframe_row_number, GRNN.dataframe_col_number - 1, GRNN.y_train, GRNN.sigma1);
 
   // currently used only one test vector
   double z_augmented[1][MAX_ROWS];
 
-  double instance_x[GRNN.dataframe_col_number * 2 + 2];
+  double instance_x[GRNN.dataframe_col_number * 2];
 
   double z_aumented_sum = 0;
 
@@ -293,7 +374,7 @@ double grnn_test(double* test_vector, uint32_t test_vector_size)
       memcpy(instance_x + (test_vector_size) * 2, &y_pred, sizeof(double));
       memcpy(instance_x + ((test_vector_size) * 2 + 1),  &GRNN.y_train_predicted[j], sizeof(double));
 
-      z_augmented[i][j] = grnn_predict_concatenated(instance_x, GRNN.x_augmented_filename, GRNN.y_augmented_filename, pow(GRNN.dataframe_row_number, 2), GRNN.dataframe_col_number * 2, GRNN.sigma2);
+      z_augmented[i][j] = grnn_predict_concatenated(instance_x, GRNN.x_augmented_filename, GRNN.y_augmented_filename, pow(GRNN.dataframe_row_number, 2), (GRNN.dataframe_col_number) * 2, GRNN.sigma2);
       
       z_aumented_sum += z_augmented[i][j];
     }
@@ -305,7 +386,7 @@ double grnn_test(double* test_vector, uint32_t test_vector_size)
     y_prediction_sum += GRNN.y_train_predicted[i];
   }
 
-  double final_y_predction = z_aumented_sum + y_prediction_sum;
+  double final_y_predction = (z_aumented_sum + y_prediction_sum) / GRNN.dataframe_row_number;
 
   return final_y_predction;
 }
@@ -328,7 +409,7 @@ static GRNN_result_enum_t grnn_concatenate_data(char* train_x_filename,char* tra
     for (int i = 0; i < row; i++) 
     {
     // Concatenate with itself
-    double* concatenated_data[MAX_COLS * 2];
+    double concatenated_data[col * 2];
     double prediction[2];
     // Concatenate with every other vector
     for (int j = 0; j < row; j++) 
@@ -392,6 +473,21 @@ GRNN_result_enum_t grnn_train(const char* train_filename)
     result_enum = GRNN_RESULT_ENUM_NOK;
   }
 
+
+  Scaler_fit(&GRNN.scaler, GRNN.train_dataframe.data, GRNN.dataframe_row_number, GRNN.dataframe_col_number - 1);
+  
+  for(int i = 0; i < GRNN.dataframe_row_number; i++)
+  {
+    Scaler_transform(&GRNN.scaler, GRNN.train_dataframe.data[i], GRNN.dataframe_col_number - 1);
+  }
+
+  // for(int i = 0; i < GRNN.dataframe_row_number; i++)
+  // {
+  //   // -1 due to y value
+  //   maxAbsScaler(GRNN.train_dataframe.data[i], GRNN.dataframe_col_number - 1);
+  // }
+  
+
   for (int i = 0; i < GRNN.dataframe_row_number; i++)
   {
     // take last value from each vector it is y value
@@ -424,7 +520,7 @@ GRNN_result_enum_t grnn_train(const char* train_filename)
 
   sprintf(GRNN.y_augmented_filename, "%s%s", train_filename, "_concatenated_y.bin");
 
-  if(grnn_concatenate_data(GRNN.x_augmented_filename, GRNN.y_augmented_filename,  &GRNN.train_dataframe, GRNN.dataframe_col_number, GRNN.dataframe_row_number, GRNN.y_train_predicted) != GRNN_RESULT_ENUM_OK)
+  if(grnn_concatenate_data(GRNN.x_augmented_filename, GRNN.y_augmented_filename,  &GRNN.train_dataframe, GRNN.dataframe_col_number - 1, GRNN.dataframe_row_number, GRNN.y_train_predicted) != GRNN_RESULT_ENUM_OK)
   {
     result_enum = GRNN_RESULT_ENUM_NOK;
   }
