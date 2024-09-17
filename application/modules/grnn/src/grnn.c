@@ -297,49 +297,6 @@ void Scaler_transform(Scaler* scaler, double dataframe[MAX_COLS], int cols) {
 }
 
 
-// double findMaxAbs(double arr[], int n) {
-//     double maxAbs = 0;
-//     for (int i = 0; i < n; i++) {
-//         double absVal = arr[i] > 0 ? arr[i] : -arr[i];
-//         if (absVal > maxAbs)
-//             maxAbs = absVal;
-//     }
-//     return maxAbs;
-// }
-
-// void maxAbsScaler(double arr[], int n) {
-//     double maxAbs = findMaxAbs(arr, n);
-//     for (int i = 0; i < n; i++) 
-//     {
-//       if(maxAbs != 0)
-//       {
-//         arr[i] /= maxAbs;
-//       }
-//       else
-//       {
-//         arr[i] = 0;
-//       }
-//     }
-
-// }
-
-// // Function to scale each column of a 2D array using max absolute scaling
-// void scaleColumns(double data[MAX_ROWS][MAX_COLS], int rows, int cols) {
-//     for (int col = 0; col < cols; col++) {
-//         double column[MAX_ROWS];
-//         // Extract the column
-//         for (int row = 0; row < rows; row++) {
-//             column[row] = data[row][col];
-//         }
-//         // Scale the column
-//         maxAbsScaler(column, rows);
-//         // Update the original data with scaled column
-//         for (int row = 0; row < rows; row++) {
-//             data[row][col] = column[row];
-//         }
-//     }
-// }
-
 double grnn_test(double test_vector[], uint32_t test_vector_size)
 {
   //predict value for test_vector, use predict function
@@ -472,7 +429,6 @@ GRNN_result_enum_t grnn_train(const char* train_filename)
   {
     result_enum = GRNN_RESULT_ENUM_NOK;
   }
-
 
   Scaler_fit(&GRNN.scaler, GRNN.train_dataframe.data, GRNN.dataframe_row_number, GRNN.dataframe_col_number - 1);
   

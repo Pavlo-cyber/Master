@@ -95,7 +95,7 @@ extern USBD_CDC_ItfTypeDef USBD_Interface_fops_FS;
 /* USER CODE BEGIN EXPORTED_VARIABLES */
 
 /* USER CODE END EXPORTED_VARIABLES */
-int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len);
+static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len);
 /**
   * @}
   */

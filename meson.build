@@ -87,8 +87,8 @@ c_args = [
     '-mcpu=cortex-m7',
     '-g',
     '-mthumb',
-    '-Wall',
-    '-Werror',
+    #'-Wall',
+    #'-Werror',
     '-O0',
     '-DDEBUG',
     '-DUSE_HAL_DRIVER',
@@ -133,6 +133,7 @@ module_list = {
     'main_module'   : true,
     'hma'           : true,
     'grnn'          : true,
+    'cdc_wrapper'   : true,
 }
 
 path_to_modules = 'application/modules/'

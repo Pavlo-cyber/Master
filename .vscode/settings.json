@@ -15,8 +15,25 @@
         "cstring": "c",
         "__string": "c",
         "memory": "c",
-        "utility": "c"
+        "utility": "c",
+        "__hash_table": "c",
+        "__split_buffer": "c",
+        "array": "c",
+        "bitset": "c",
+        "deque": "c",
+        "initializer_list": "c",
+        "iterator": "c",
+        "queue": "c",
+        "random": "c",
+        "span": "c",
+        "string": "c",
+        "string_view": "c",
+        "unordered_map": "c",
+        "vector": "c",
+        "format": "c",
+        "cstdlib": "c"
     },
     "C_Cpp.default.compileCommands": "/Users/pavlogoncaruk/study/master/builddir/compile_commands.json",
-    "cortex-debug.variableUseNaturalFormat": true
+    "cortex-debug.variableUseNaturalFormat": true,
+    "C_Cpp.default.configurationProvider": "mesonbuild.mesonbuild"
 }

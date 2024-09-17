@@ -8,6 +8,7 @@
 #include "ff.h"
 #include "fatfs.h"
 #include "grnn.h"
+#include "cdc_wrapper.h"
 
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
@@ -24,6 +25,48 @@ int _write(int file, char *ptr, int len)
     ITM_SendChar(*ptr++);
   }
   return len;
+}
+
+GRNN_test_type_enum_t active_test_type = GRNN_TEST_TYPE_NONE;
+
+void process_received_command(CDC_WRAPPER_g_code_enum_t g_code, CDC_WRAPPER_g_code_parameters_t* params)
+{
+  // grnn_train should be called for the needed dataset before processing with grnn_test
+  // we could save for which mechanical parameter was processed train last time and if we try to test the save we could not call it
+  double array[20] = {0};
+  
+  if (g_code == CDC_WRAPPER_G_CODE_M100)
+  {
+    if(active_test_type != GRNN_TEST_TYPE_HARDNESS)
+    {
+      (void)grnn_train("0:/Hardness.csv");
+
+      active_test_type = GRNN_TEST_TYPE_HARDNESS;
+    }
+  }
+  else if (g_code == CDC_WRAPPER_G_CODE_M101)
+  {
+    if(active_test_type != GRNN_TEST_TYPE_FRACTURE)
+    {
+      (void)grnn_train("0:/Fracture.csv");
+
+      active_test_type = GRNN_TEST_TYPE_FRACTURE;
+    }
+  }
+  else if (g_code == CDC_WRAPPER_G_CODE_M102)
+  {
+    if(active_test_type != GRNN_TEST_TYPE_STRENGTH)
+    {
+      (void)grnn_train("0:/Strength.csv");
+
+      active_test_type = GRNN_TEST_TYPE_STRENGTH;
+    }
+  }
+
+  memcpy(array, params, sizeof(CDC_WRAPPER_g_code_parameters_t));
+
+  double result = grnn_test(array, sizeof(CDC_WRAPPER_g_code_parameters_t));
+  cdc_wrapper_transmit(result, g_code);
 }
 
 
@@ -55,68 +98,17 @@ int main(void)
   MX_SDMMC1_SD_Init();
   MX_FATFS_Init();
 
+  cdc_wrapper_init(process_received_command);
   grnn_init(0.06128145862067626, 3.908926329639479);
-
-  (void)grnn_train("0:/Hardness.csv");
-
-  double array[] = {0,1,0,97,3,0,0,0,0,0,0,0,1650,1.8,6};
-
-  grnn_test(array, sizeof(array)/sizeof(array[0]));
-
-  // FRESULT res;
-  // FATFS SDFatFs;  /* File system object for SD disk logical drive */
-  // FIL MyFile;     /* File object */
-  // res =  f_mount(&SDFatFs, "", 1);
-  // if (res == FR_OK)
-  // {
-  //   res = f_open(&MyFile, "monitor.txt", FA_READ | FA_WRITE);
-  // }
-
-  // uint32_t readed = 0;
-  // char buff[512];
-  // if(res == FR_OK)
-  // {
-	//   res = f_read(&MyFile, buff, 512, (void*)&readed);
-  // }
-  // if(res == FR_OK)
-  // {
-	//   res = f_close(&MyFile);
-  // }
-
-  // if (res == FR_OK)
-  // {
-  //   res = f_open(&MyFile, "create.txt", FA_CREATE_ALWAYS| FA_READ | FA_WRITE);
-  // }
-
-  // static char wbuff[] = "Hello world";
-  // uint32_t written;
-
-  // if(res == FR_OK)
-  // {
-	//   res = f_write(&MyFile, wbuff, strlen(wbuff), (void*)&written);
-  // }
-
-  // if(res == FR_OK)
-  // {
-	//   res = f_close(&MyFile);
-  // }
 
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
-  // static char buff[] = "Hello world\n";
-  // static uint8_t receiv[14];
-  // uint32_t len = 0;
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    /* USER CODE END WHILE */
-	  //CDC_Transmit_FS((uint8_t*)buff, strlen(buff));
-    // CDC_Receive_FS(receiv, &len);
-    // receiv[13] = '\0';
-    // printf("packet: %s len %ld", receiv, len);
-    /* USER CODE BEGIN 3 */
+    cdc_wrapper_process();
   }
   /* USER CODE END 3 */
 }
