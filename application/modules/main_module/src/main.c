@@ -15,6 +15,7 @@ static void MX_GPIO_Init(void);
 static void MX_SDMMC1_SD_Init(void);
 
 SD_HandleTypeDef hsd1;
+static FATFS SDFatFs; 
 
 int _write(int file, char *ptr, int len)
 {
@@ -34,40 +35,51 @@ void process_received_command(CDC_WRAPPER_g_code_enum_t g_code, CDC_WRAPPER_g_co
   // grnn_train should be called for the needed dataset before processing with grnn_test
   // we could save for which mechanical parameter was processed train last time and if we try to test the save we could not call it
   double array[20] = {0};
+  GRNN_result_enum_t grnn_result_enum = GRNN_RESULT_ENUM_OK;
   
   if (g_code == CDC_WRAPPER_G_CODE_M100)
   {
     if(active_test_type != GRNN_TEST_TYPE_HARDNESS)
     {
-      (void)grnn_train("0:/Hardness.csv");
-
-      active_test_type = GRNN_TEST_TYPE_HARDNESS;
+      grnn_result_enum = grnn_train("0:/Hardness.csv");
+      if (grnn_result_enum == GRNN_RESULT_ENUM_OK)
+      {
+        active_test_type = GRNN_TEST_TYPE_HARDNESS;
+      }
     }
   }
   else if (g_code == CDC_WRAPPER_G_CODE_M101)
   {
     if(active_test_type != GRNN_TEST_TYPE_FRACTURE)
     {
-      (void)grnn_train("0:/Fracture.csv");
-
-      active_test_type = GRNN_TEST_TYPE_FRACTURE;
+      grnn_result_enum = grnn_train("0:/Fracture.csv");
+      if (grnn_result_enum == GRNN_RESULT_ENUM_OK)
+      {
+        active_test_type = GRNN_TEST_TYPE_FRACTURE;
+      }
     }
   }
   else if (g_code == CDC_WRAPPER_G_CODE_M102)
   {
     if(active_test_type != GRNN_TEST_TYPE_STRENGTH)
     {
-      (void)grnn_train("0:/Strength.csv");
-
-      active_test_type = GRNN_TEST_TYPE_STRENGTH;
+      grnn_result_enum = grnn_train("0:/Strength.csv");
+      if (grnn_result_enum == GRNN_RESULT_ENUM_OK)
+      {
+        active_test_type = GRNN_TEST_TYPE_STRENGTH;
+      }
     }
   }
 
-  memcpy(array, params, sizeof(CDC_WRAPPER_g_code_parameters_t));
-
-  double result = grnn_test(array, sizeof(CDC_WRAPPER_g_code_parameters_t));
+  double result = 0.0;     ///< set default value indicate error
+  if (grnn_result_enum == GRNN_RESULT_ENUM_OK)
+  {
+    memcpy(array, params, sizeof(CDC_WRAPPER_g_code_parameters_t));
+    result = grnn_test(array, sizeof(CDC_WRAPPER_g_code_parameters_t)/ sizeof(double));
+  }
   cdc_wrapper_transmit(result, g_code);
 }
+
 
 
 int main(void)
@@ -98,11 +110,13 @@ int main(void)
   MX_SDMMC1_SD_Init();
   MX_FATFS_Init();
 
+  FRESULT fresult =  f_mount(&SDFatFs, "", 1);
+  assert_param(fresult == FR_OK);
+
   cdc_wrapper_init(process_received_command);
   grnn_init(0.06128145862067626, 3.908926329639479);
 
   /* USER CODE BEGIN 2 */
-
   /* USER CODE END 2 */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */

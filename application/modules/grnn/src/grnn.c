@@ -31,7 +31,6 @@ typedef struct {
 
 typedef struct
 {
-  FATFS SDFatFs;
   uint32_t file_buffer[FILE_BUFFER_SIZE];
 
   struct csv_parser parser;
@@ -137,11 +136,13 @@ static GRNN_result_enum_t grnn_load_data(const char* train_filename)
   GRNN_result_enum_t result_enum = GRNN_RESULT_ENUM_OK;
   FIL fp;
   
-  fresult =  f_mount(&GRNN.SDFatFs, "", 1);
-  if (fresult == FR_OK)
-  {
-    fresult = f_open(&fp, train_filename, FA_READ | FA_WRITE);
-  }
+  // reset dataframe variable
+  GRNN.dataframe_col_number = 0;
+  GRNN.dataframe_row_number = 0;
+  GRNN.train_dataframe.cols = 0;
+  GRNN.train_dataframe.rows = 0;
+
+  fresult = f_open(&fp, train_filename, FA_READ | FA_WRITE);
 
   uint32_t read_byte = 0;
 
