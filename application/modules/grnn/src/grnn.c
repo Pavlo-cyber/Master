@@ -63,16 +63,13 @@ void grnn_init(double sigma1, double sigma2)
 
   GRNN.sigma1 = sigma1;
   GRNN.sigma2 = sigma2;
-
-  // curently used dataset with header 
-  GRNN.train_dataframe.is_header = true;
 }
 
 float root_mean_squared_error(float *y_true, float *y_pred, int size) 
 {
     float sum = 0.0;
     for (int i = 0; i < size; i++) {
-        sum += pow(y_pred[i] - y_true[i], 2);
+        sum += powl(y_pred[i] - y_true[i], 2);
     }
     return sqrt(sum / size);
 }
@@ -81,7 +78,7 @@ float root_mean_squared_error(float *y_true, float *y_pred, int size)
 float mean_absolute_percentage_error(float *y_true, float *y_pred, int size) {
     float sum = 0.0;
     for (int i = 0; i < size; i++) {
-        sum += fabs((y_true[i] - y_pred[i]) / y_true[i]);
+        sum += fabsl((y_true[i] - y_pred[i]) / y_true[i]);
     }
     return (sum / size) * 100.0;
 }
@@ -95,6 +92,10 @@ static void csv_field_callback (void *s, size_t i, void *user_data)
   if(temp_string == NULL)
   {
     assert_param();
+    while(1)
+    {
+
+    }
   }
   else
   {
@@ -188,29 +189,33 @@ static double grnn_predict(double *instance_X, DataFrame* train_X, uint32_t row,
     for (int k = 0; k < col; k++) 
     { 
       // calculate euclidean distance
-      distance += pow(instance_X[k] - train_X->data[i][k], 2);
+      distance += powl(instance_X[k] - train_X->data[i][k], 2);
     }
 
-    double gausian_distance = exp( -distance / (2 * pow(sigma, 2)));
+    double gausian_distance = expl( -distance / (2 * powl(sigma, 2)));
     gausian_distances_sum += gausian_distance;
     result_sum += gausian_distance * train_y[i];
   }
 
-  if (gausian_distances_sum < pow(10, -7)) 
+  if (gausian_distances_sum < powl(10, -7)) 
   {
-      gausian_distances_sum = pow(10, -7);
+    gausian_distances_sum = powl(10, -7);
   }
 
   double result = result_sum / gausian_distances_sum;
   return result;
 }
 
-static double calculate_distance(double *instance_X, double *train_X, int col, double sigma) {
-    double distance = 0.0;
-    for (int k = 0; k < col; k++) {
-        distance += pow(instance_X[k] - train_X[k], 2);
-    }
-    return exp(- fabs(distance) / (2 * pow(sigma, 2)));
+
+static double calculate_distance(double *instance_X, double *train_X, int col, double sigma) 
+{
+  double distance = 0.0;
+  for (int k = 0; k < col; k++) 
+  {
+    double diff = instance_X[k] - train_X[k];
+    distance += diff * diff;
+  }
+  return expl(-distance / (2 * sigma * sigma));
 }
 
 static double grnn_predict_concatenated(double *instance_X, char* train_x_filename, char* train_y_filename, uint32_t row, uint32_t col, double sigma)
@@ -224,18 +229,22 @@ static double grnn_predict_concatenated(double *instance_X, char* train_x_filena
   if(f_open(&fp1, train_x_filename, FA_READ) != FR_OK)
   {
     // handelr error
+    while(1)
+    {}
     assert_param(true);
   }
 
   if(f_open(&fp2, train_y_filename, FA_READ) != FR_OK)
   {
     // handle error
+    while(1)
+    {}
     assert_param(true);
   }
 
   double train_X_row[col];
   double train_y;
-
+  double max = 0;
   for (int i = 0; i < row; i++) 
   {
     // Read a row of train_X from file
@@ -257,12 +266,23 @@ static double grnn_predict_concatenated(double *instance_X, char* train_x_filena
     // Calculate Gaussian distance
     double distance = calculate_distance(instance_X, train_X_row, col, sigma);
     gaussian_distances_sum += distance;
+    if (distance < 0)
+    {
+      while(1)
+      {
+
+      }
+    }
     result_sum += distance * train_y;
+    if (distance > max)
+    {
+      max = distance;
+    }
   }
 
-    if (gaussian_distances_sum < pow(10, -7)) 
+    if (gaussian_distances_sum < powl(10, -7)) 
     {
-        gaussian_distances_sum = pow(10, -7);
+      gaussian_distances_sum = powl(10, -7);
     }
 
   return result_sum / gaussian_distances_sum;
@@ -278,7 +298,7 @@ void Scaler_fit(Scaler* scaler, double dataframe[MAX_ROWS][MAX_COLS], int rows, 
     // Calculate maxAbs values for each column
     for (int col = 0; col < cols; col++) {
         for (int row = 0; row < rows; row++) {
-            double absVal = fabs(dataframe[row][col]);
+            double absVal = fabsl(dataframe[row][col]);
             if (absVal > scaler->maxAbs[col]) {
                 scaler->maxAbs[col] = absVal;
             }
@@ -302,7 +322,7 @@ double grnn_test(double test_vector[], uint32_t test_vector_size)
 {
   //predict value for test_vector, use predict function
   // col number -1 because col number include 1 colum
-  if(test_vector_size != GRNN.dataframe_col_number - 1)
+  if (test_vector_size != GRNN.dataframe_col_number - 1)
   {
     assert_param();
     while(1)
@@ -316,7 +336,7 @@ double grnn_test(double test_vector[], uint32_t test_vector_size)
   double y_pred = grnn_predict(test_vector, &GRNN.train_dataframe, GRNN.dataframe_row_number, GRNN.dataframe_col_number - 1, GRNN.y_train, GRNN.sigma1);
 
   // currently used only one test vector
-  double z_augmented[1][MAX_ROWS];
+  double z_augmented[1][MAX_ROWS] = {0};
 
   double instance_x[GRNN.dataframe_col_number * 2];
 
@@ -332,7 +352,7 @@ double grnn_test(double test_vector[], uint32_t test_vector_size)
       memcpy(instance_x + (test_vector_size) * 2, &y_pred, sizeof(double));
       memcpy(instance_x + ((test_vector_size) * 2 + 1),  &GRNN.y_train_predicted[j], sizeof(double));
 
-      z_augmented[i][j] = grnn_predict_concatenated(instance_x, GRNN.x_augmented_filename, GRNN.y_augmented_filename, pow(GRNN.dataframe_row_number, 2), (GRNN.dataframe_col_number) * 2, GRNN.sigma2);
+      z_augmented[i][j] = grnn_predict_concatenated(instance_x, GRNN.x_augmented_filename, GRNN.y_augmented_filename, powl(GRNN.dataframe_row_number, 2), (GRNN.dataframe_col_number) * 2, GRNN.sigma2);
       
       z_aumented_sum += z_augmented[i][j];
     }
@@ -373,6 +393,10 @@ static GRNN_result_enum_t grnn_concatenate_data(char* train_x_filename,char* tra
     for (int j = 0; j < row; j++) 
     {
       // Skip if it's the same vector as the one we concatenated with itself
+      // if (j == i)
+      // {
+      //   continue;
+      // }
       memcpy(concatenated_data, train_dataframe->data[i], col * sizeof(double));
       memcpy(concatenated_data + col, train_dataframe->data[j], col * sizeof(double));
 
@@ -424,6 +448,8 @@ static void removeExtension(char* filename) {
 
 GRNN_result_enum_t grnn_train(const char* train_filename)
 {
+  // curently used dataset with header 
+  GRNN.train_dataframe.is_header = true;
   GRNN_result_enum_t result_enum = GRNN_RESULT_ENUM_OK;
 
   if(grnn_load_data(train_filename) != GRNN_RESULT_ENUM_OK)
@@ -477,7 +503,7 @@ GRNN_result_enum_t grnn_train(const char* train_filename)
 
   sprintf(GRNN.y_augmented_filename, "%s%s", train_filename, "_concatenated_y.bin");
 
-  if(grnn_concatenate_data(GRNN.x_augmented_filename, GRNN.y_augmented_filename,  &GRNN.train_dataframe, GRNN.dataframe_col_number - 1, GRNN.dataframe_row_number, GRNN.y_train_predicted) != GRNN_RESULT_ENUM_OK)
+  if (grnn_concatenate_data(GRNN.x_augmented_filename, GRNN.y_augmented_filename,  &GRNN.train_dataframe, GRNN.dataframe_col_number - 1, GRNN.dataframe_row_number, GRNN.y_train_predicted) != GRNN_RESULT_ENUM_OK)
   {
     result_enum = GRNN_RESULT_ENUM_NOK;
   }
